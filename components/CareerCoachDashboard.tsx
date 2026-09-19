@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { CareerCoachComposer } from "./chat/CareerCoachComposer";
 import { CareerCoachSidebar } from "./chat/CareerCoachSidebar";
 import { CareerCoachTranscript } from "./chat/CareerCoachTranscript";
@@ -93,7 +93,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
     void selectFile(event.dataTransfer.files[0]);
   }
 
-  async function submitMessage(nextMessage?: string) {
+  const submitMessage = useCallback(async (nextMessage?: string) => {
     const requestedContent = (nextMessage ?? message).trim();
     const content = requestedContent || (attachment ? "Please review the attached file." : "");
     if (!content || isSending) return;
@@ -148,7 +148,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
     } finally {
       setIsSending(false);
     }
-  }
+  }, [activeChatId, attachment, isSending, message]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -160,7 +160,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
       initialPromptSent.current = true;
       void submitMessage(initialPrompt);
     }
-  }, [initialPrompt, messages.length]);
+  }, [initialPrompt, messages.length, submitMessage]);
 
   return (
     <main className="flex h-screen min-h-0 overflow-hidden bg-[#fbfaf6] text-stone-950">

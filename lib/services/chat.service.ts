@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db/prisma";
 
 import {
   createChat,
+  deleteChat,
   findChatById,
+  findRecentChats,
+  setChatPinned,
 } from "@/lib/db/repositories/chat.repository";
 
 import {
@@ -100,6 +103,30 @@ export async function saveAssistantMessage({
 
 export async function getChatHistory(chatId: string) {
    return findMessagesByChatId(chatId);
+}
+
+export async function getRecentChats(cursor?: string, limit = 20) {
+  const chats = await findRecentChats({ cursor, limit });
+  const hasMore = chats.length > limit;
+  const items = hasMore ? chats.slice(0, limit) : chats;
+
+  return {
+    chats: items.map((chat) => ({
+      id: chat.id,
+      title: chat.title || chat.messages[0]?.content || "New conversation",
+      isPinned: chat.isPinned,
+      updatedAt: chat.updatedAt,
+    })),
+    nextCursor: hasMore ? items[items.length - 1]?.id ?? null : null,
+  };
+}
+
+export async function pinChat(chatId: string, isPinned: boolean) {
+  return prisma.$transaction((tx) => setChatPinned(chatId, isPinned, tx));
+}
+
+export async function removeChat(chatId: string) {
+  return deleteChat(chatId);
 }
 
 export async function getChatById(chatId: string) {

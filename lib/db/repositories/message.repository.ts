@@ -8,10 +8,21 @@ type CreateMessageInput = {
   content: string;
 };
 
-export function createMessage(data: CreateMessageInput, db:DbClient = prisma) {
-  return db.message.create({
+export async function createMessage(data: CreateMessageInput, db:DbClient = prisma) {
+  const message = await db.message.create({
     data,
   });
+
+  await db.chat.update({
+    where: {
+      id: data.chatId,
+    },
+    data: {
+      updatedAt: new Date(),
+    },
+  });
+
+  return message;
 }
 
 export function findMessagesByChatId(chatId: string, db:DbClient = prisma) {

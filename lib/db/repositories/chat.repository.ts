@@ -26,6 +26,87 @@ export function findChatById(chatId: string, db:DbClient = prisma) {
   });
 }
 
+export function findRecentChats(
+  {
+    cursor,
+    limit,
+  }: {
+    cursor?: string;
+    limit: number;
+  },
+  db: DbClient = prisma,
+) {
+  return db.chat.findMany({
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit + 1,
+    orderBy: [
+      { isPinned: "desc" },
+      { updatedAt: "desc" },
+      { id: "desc" },
+    ],
+    select: {
+      id: true,
+      title: true,
+      isPinned: true,
+      updatedAt: true,
+      messages: {
+        where: {
+          role: "user",
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+        take: 1,
+        select: {
+          content: true,
+        },
+      },
+    },
+  });
+}
+
+export async function setChatPinned(
+  chatId: string,
+  isPinned: boolean,
+  db: DbClient = prisma,
+) {
+  if (isPinned) {
+    const pinnedCount = await db.chat.count({
+      where: {
+        isPinned: true,
+      },
+    });
+
+    if (pinnedCount >= 3) {
+      throw new Error("You can pin up to 3 chats.");
+    }
+  }
+
+  return db.chat.update({
+    where: {
+      id: chatId,
+    },
+    data: {
+      isPinned,
+    },
+    select: {
+      id: true,
+      isPinned: true,
+    },
+  });
+}
+
+export function deleteChat(chatId: string, db: DbClient = prisma) {
+  return db.chat.delete({
+    where: {
+      id: chatId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 type UpdateChatMemoryInput = {
   chatId: string;
   memory: string;

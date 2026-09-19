@@ -22,6 +22,7 @@ model User {
 model Chat {
   id                  String  @id @default(cuid())
   title               String?
+  isPinned            Boolean @default(false)
   memory              String?
   memoryVersion       Int     @default(1)
   lastMemoryMessageId String?
