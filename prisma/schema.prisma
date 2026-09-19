@@ -1,0 +1,104 @@
+  // This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  chats     Chat[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Chat {
+  id                  String  @id @default(cuid())
+  title               String?
+  memory              String?
+  memoryVersion       Int     @default(1)
+  lastMemoryMessageId String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages  Message[]
+  documents ChatDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Message {
+  id      String @id @default(cuid())
+  role    String
+  content String
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  attachments Attachment[]
+
+  createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  storagePath String   @unique
+  mimeType    String
+  size        Int
+  createdAt   DateTime @default(now())
+
+  chunks      DocumentChunk[]
+  chats       ChatDocument[]
+  attachments Attachment[]
+}
+
+model DocumentChunk {
+  id         String                       @id @default(cuid())
+  documentId String
+  content    String
+  createdAt  DateTime                     @default(now())
+  embedding  Unsupported("vector(768)")?
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model ChatDocument {
+  chatId     String
+  documentId String
+  createdAt  DateTime @default(now())
+
+  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, documentId])
+  @@index([documentId])
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  messageId  String
+  documentId String
+  createdAt  DateTime @default(now())
+
+  message  Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([documentId])
+}
