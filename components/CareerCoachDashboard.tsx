@@ -9,9 +9,10 @@ import type { Attachment, Message, UploadStatus } from "./chat/types";
 type CareerCoachDashboardProps = {
   chatId?: string;
   history?: Message[];
+  initialPrompt?: string;
 };
 
-export function CareerCoachDashboard({ chatId, history }: CareerCoachDashboardProps) {
+export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerCoachDashboardProps) {
   const [messages, setMessages] = useState<Message[]>(history ?? []);
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -23,6 +24,7 @@ export function CareerCoachDashboard({ chatId, history }: CareerCoachDashboardPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const nextMessageId = useRef(2);
+  const initialPromptSent = useRef(false);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({
@@ -152,6 +154,13 @@ export function CareerCoachDashboard({ chatId, history }: CareerCoachDashboardPr
     event.preventDefault();
     void submitMessage();
   }
+
+  useEffect(() => {
+    if (initialPrompt && !initialPromptSent.current && messages.length === 0) {
+      initialPromptSent.current = true;
+      void submitMessage(initialPrompt);
+    }
+  }, [initialPrompt, messages.length]);
 
   return (
     <main className="flex h-screen min-h-0 overflow-hidden bg-[#fbfaf6] text-stone-950">
