@@ -97,6 +97,23 @@ export async function findSimilarDocumentChunks(
   );
 }
 
+export function findDocumentChunks(
+  documentId: string,
+  limit = 20,
+  db: DbClient = prisma,
+) {
+  return db.documentChunk.findMany({
+    where: { documentId },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: {
+      id: true,
+      content: true,
+      documentId: true,
+    },
+  });
+}
+
 export async function findSimilarChunksInChat(
   {
     chatId,

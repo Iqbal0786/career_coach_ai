@@ -43,5 +43,6 @@ export type ComposerProps = {
   onDragLeave: () => void;
   onOpenFilePicker: () => void;
   onRemoveAttachment: () => void;
+  onRetryUpload: () => void;
   onSend: () => void;
 };

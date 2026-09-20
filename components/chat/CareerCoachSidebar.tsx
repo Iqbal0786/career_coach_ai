@@ -154,6 +154,19 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
   }, []);
 
   useEffect(() => {
+    function handleChatCreated(event: Event) {
+      const customEvent = event as CustomEvent<ChatSummary>;
+      setChats((currentChats) => sortChats([
+        customEvent.detail,
+        ...currentChats.filter((chat) => chat.id !== customEvent.detail.id),
+      ]));
+    }
+
+    window.addEventListener("career-chat-created", handleChatCreated);
+    return () => window.removeEventListener("career-chat-created", handleChatCreated);
+  }, []);
+
+  useEffect(() => {
     function closeMenu(event: MouseEvent) {
       const target = event.target;
       if (!(target instanceof Element)) return;

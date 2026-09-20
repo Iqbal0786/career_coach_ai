@@ -74,7 +74,18 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
 
       const result = await response.json();
       setAttachment((currentAttachment) => currentAttachment ? { ...currentAttachment, documentId: result.documentId, storagePath: result.storagePath, url: result.url } : currentAttachment);
-      if (!activeChatId && result.chatId) setActiveChatId(result.chatId);
+      if (!activeChatId && result.chatId) {
+        setActiveChatId(result.chatId);
+        window.history.replaceState(null, "", `/chat/${result.chatId}`);
+        window.dispatchEvent(new CustomEvent("career-chat-created", {
+          detail: {
+            id: result.chatId,
+            title: file.name,
+            isPinned: false,
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+      }
       setUploadStatus("ready");
     } catch (caughtError) {
       console.error("Error uploading PDF:", caughtError);
@@ -92,6 +103,10 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
     event.preventDefault();
     setIsDragging(false);
     void selectFile(event.dataTransfer.files[0]);
+  }
+
+  function retryUpload() {
+    if (attachment) void selectFile(attachment.file);
   }
 
   const submitMessage = useCallback(async (nextMessage?: string) => {
@@ -112,6 +127,8 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
 
     setMessages((currentMessages) => [...currentMessages, userMessage, { id: coachMessageId, role: "assistant", content: "" }]);
     setMessage("");
+    setAttachment(null);
+    setUploadStatus("idle");
     setError("");
     setIsSending(true);
 
@@ -129,6 +146,18 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
       if (!response.ok || !response.body) throw new Error((await response.text()) || "Request failed");
 
       const responseChatId = response.headers.get("X-Chat-Id");
+      if (!activeChatId && responseChatId) {
+        setActiveChatId(responseChatId);
+        window.history.replaceState(null, "", `/chat/${responseChatId}`);
+        window.dispatchEvent(new CustomEvent("career-chat-created", {
+          detail: {
+            id: responseChatId,
+            title: content,
+            isPinned: false,
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+      }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
@@ -139,11 +168,6 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
         setMessages((currentMessages) => currentMessages.map((chatMessage) => chatMessage.id === coachMessageId ? { ...chatMessage, content: chatMessage.content + chunk } : chatMessage));
       }
 
-      if (!activeChatId && responseChatId) {
-        setActiveChatId(responseChatId);
-        window.history.replaceState(null, "", `/chat/${responseChatId}`);
-      }
-      setAttachment(null);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to reach the coach right now.");
     } finally {
@@ -186,6 +210,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
             onDragLeave={() => setIsDragging(false)}
             onOpenFilePicker={() => fileInputRef.current?.click()}
             onRemoveAttachment={() => { setAttachment(null); setUploadStatus("idle"); setError(""); }}
+            onRetryUpload={retryUpload}
             onSend={() => void submitMessage()}
           />
         </div>

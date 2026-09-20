@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const chatSchema = z.object({
   chatId: z.string().trim().min(1, "Invalid chat ID").optional(),
+  documentId: z.string().trim().min(1, "Invalid document ID").optional(),
 
   message: z
     .string()

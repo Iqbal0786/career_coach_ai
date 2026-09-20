@@ -25,5 +25,5 @@ export default async function ChatPage({
     redirect("/chat");
   }
 
-  return <CareerCoachDashboard chatId={chatId} history={chatHistory as Message[]} />;
+  return <CareerCoachDashboard key={chatId} chatId={chatId} history={chatHistory as Message[]} />;
 }
