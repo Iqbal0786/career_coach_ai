@@ -18,6 +18,26 @@ type ChatsResponse = {
   nextCursor: string | null;
 };
 
+const recentChatsStore: {
+  cache: ChatsResponse | null;
+  request: Promise<ChatsResponse> | null;
+} = { cache: null, request: null };
+
+function getRecentChatsOnce() {
+  if (recentChatsStore.cache) return Promise.resolve(recentChatsStore.cache);
+  recentChatsStore.request ??= fetch("/api/chats?limit=20", { cache: "no-store" }).then(async (response) => {
+    if (!response.ok) throw new Error("Failed to load chats");
+    return response.json() as Promise<ChatsResponse>;
+  }).finally(() => {
+    recentChatsStore.request = null;
+  });
+  return recentChatsStore.request;
+}
+
+function updateRecentChatsCache(updater: (current: ChatsResponse | null) => ChatsResponse | null) {
+  recentChatsStore.cache = updater(recentChatsStore.cache);
+}
+
 type CareerCoachSidebarProps = {
   activeChatId?: string;
 };
@@ -55,9 +75,8 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
 
     async function loadInitialChats() {
       try {
-        const response = await fetch("/api/chats?limit=20", { cache: "no-store" });
-        if (!response.ok) throw new Error("Failed to load chats");
-        const result: ChatsResponse = await response.json();
+        const result = await getRecentChatsOnce();
+        updateRecentChatsCache(() => result);
 
         if (!cancelled) {
           setChats(result.chats);
@@ -93,6 +112,7 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
       if (!response.ok) throw new Error(result?.error || "Failed to update chat");
 
       setChats((currentChats) => sortChats(currentChats.map((currentChat) => currentChat.id === chat.id ? { ...currentChat, isPinned: !chat.isPinned } : currentChat)));
+      updateRecentChatsCache((cache) => cache ? { ...cache, chats: cache.chats.map((cachedChat) => cachedChat.id === chat.id ? { ...cachedChat, isPinned: !chat.isPinned } : cachedChat) } : cache);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to update chat");
     } finally {
@@ -108,6 +128,7 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
       const response = await fetch(`/api/chats/${chat.id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete chat");
       setChats((currentChats) => currentChats.filter((currentChat) => currentChat.id !== chat.id));
+      updateRecentChatsCache((cache) => cache ? { ...cache, chats: cache.chats.filter((cachedChat) => cachedChat.id !== chat.id) } : cache);
       if (chat.id === activeChatId) router.push("/chat");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to delete chat");
@@ -134,6 +155,7 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
           const existingIds = new Set(currentChats.map((chat) => chat.id));
           return [...currentChats, ...result.chats.filter((chat) => !existingIds.has(chat.id))];
         });
+        updateRecentChatsCache((cache) => cache ? { chats: [...cache.chats, ...result.chats], nextCursor: result.nextCursor } : cache);
         cursorRef.current = result.nextCursor;
         hasMoreRef.current = Boolean(result.nextCursor);
         setHasMore(Boolean(result.nextCursor));
@@ -160,6 +182,9 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
         customEvent.detail,
         ...currentChats.filter((chat) => chat.id !== customEvent.detail.id),
       ]));
+      updateRecentChatsCache((cache) => cache
+        ? { ...cache, chats: sortChats([customEvent.detail, ...cache.chats.filter((chat) => chat.id !== customEvent.detail.id)]) }
+        : { chats: [customEvent.detail], nextCursor: null });
     }
 
     window.addEventListener("career-chat-created", handleChatCreated);

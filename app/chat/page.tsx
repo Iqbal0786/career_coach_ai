@@ -11,5 +11,5 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
   const { prompt } = await searchParams;
   await getAuthenticatedUser();
 
-  return <CareerCoachDashboard key="new-chat" initialPrompt={prompt} />;
+  return <CareerCoachDashboard initialPrompt={prompt} />;
 }

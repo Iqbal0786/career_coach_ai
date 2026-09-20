@@ -25,7 +25,23 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
   const transcriptRef = useRef<HTMLDivElement>(null);
   const nextMessageId = useRef(2);
   const initialPromptSent = useRef(false);
-  console.log("messages", messages);
+  const routeId = chatId ?? "new-chat";
+  const mountedRouteId = useRef(routeId);
+
+  useEffect(() => {
+    if (mountedRouteId.current === routeId) return;
+
+    mountedRouteId.current = routeId;
+    setMessages(history ?? []);
+    setMessage("");
+    setError("");
+    setAttachment(null);
+    setUploadStatus("idle");
+    setIsSending(false);
+    setActiveChatId(chatId);
+    nextMessageId.current = 2;
+    initialPromptSent.current = false;
+  }, [chatId, history, routeId]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({
