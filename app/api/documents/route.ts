@@ -1,11 +1,13 @@
 import { extractPdfText } from "@/lib/documents/extract-pdf-text";
 import { ingestDocument } from "@/lib/services/document.service";
-import { uploadDocument } from "@/lib/storage/supabase";
+import { uploadDocument } from "@/lib/supabase/storage/server";
 import { createChat } from "@/lib/db/repositories/chat.repository";
 import { prisma } from "@/lib/db/prisma";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 
 export async function POST(req: Request) {
   try {
+    const { appUser } = await getAuthenticatedUser();
     const formData = await req.formData();
 
     const file = formData.get("file");
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
    
     if (!chatId) {
       const chat = await prisma.$transaction(async (tx) => {
-        return createChat({}, tx);
+        return createChat({ userId: appUser.id }, tx);
       });
       chatId = chat.id;
     }
@@ -52,10 +54,10 @@ export async function POST(req: Request) {
       text,
       chatId,
     });
-
     return Response.json({
       success: true,
       chatId,
+      storagePath,
       ...result,
     });
   } catch (error) {

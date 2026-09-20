@@ -10,6 +10,7 @@ export type Message = {
       name: string;
       storagePath: string;
       mimeType: string;
+      url?: string;
     };
   }[];
 };
@@ -19,6 +20,8 @@ export type Attachment = {
   name: string;
   size: number;
   documentId?: string;
+  storagePath?: string;
+  url?: string;
 };
 
 export type UploadStatus = "idle" | "uploading" | "ready" | "failed";

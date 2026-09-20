@@ -22,6 +22,7 @@ export function findChatById(chatId: string, db:DbClient = prisma) {
       memory: true,
       memoryVersion: true,
       lastMemoryMessageId: true,
+      userId: true,
     },
   });
 }
@@ -30,13 +31,16 @@ export function findRecentChats(
   {
     cursor,
     limit,
+    userId,
   }: {
     cursor?: string;
     limit: number;
+    userId: string;
   },
   db: DbClient = prisma,
 ) {
   return db.chat.findMany({
+    where: { userId },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     take: limit + 1,
     orderBy: [
@@ -68,12 +72,14 @@ export function findRecentChats(
 export async function setChatPinned(
   chatId: string,
   isPinned: boolean,
+  userId: string,
   db: DbClient = prisma,
 ) {
   if (isPinned) {
     const pinnedCount = await db.chat.count({
       where: {
         isPinned: true,
+        userId,
       },
     });
 
@@ -85,6 +91,7 @@ export async function setChatPinned(
   return db.chat.update({
     where: {
       id: chatId,
+      userId,
     },
     data: {
       isPinned,
@@ -96,10 +103,11 @@ export async function setChatPinned(
   });
 }
 
-export function deleteChat(chatId: string, db: DbClient = prisma) {
+export function deleteChat(chatId: string, userId: string, db: DbClient = prisma) {
   return db.chat.delete({
     where: {
       id: chatId,
+      userId,
     },
     select: {
       id: true,

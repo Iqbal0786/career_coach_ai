@@ -1,4 +1,5 @@
 import { CareerCoachDashboard } from "@/components/CareerCoachDashboard";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 
 type ChatPageProps = {
   searchParams: Promise<{
@@ -8,6 +9,7 @@ type ChatPageProps = {
 
 export default async function ChatPage({ searchParams }: ChatPageProps) {
   const { prompt } = await searchParams;
+  await getAuthenticatedUser();
 
   return <CareerCoachDashboard initialPrompt={prompt} />;
 }

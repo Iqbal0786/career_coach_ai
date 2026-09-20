@@ -2,6 +2,9 @@
 
 import { CareerCoachDashboard } from "@/components/CareerCoachDashboard";
 import { getChatHistory } from "@/lib/services/chat.service";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
+import { redirect } from "next/navigation";
+import type { Message } from "@/components/chat/types";
 
 type ChatPageProps = {
   params: Promise<{
@@ -13,7 +16,14 @@ export default async function ChatPage({
   params,
 }: ChatPageProps) {
   const { chatId } = await params;
-  const chatHistory= await getChatHistory(chatId);
+  const { appUser } = await getAuthenticatedUser();
+  let chatHistory;
 
-  return <CareerCoachDashboard chatId={chatId} history={chatHistory as any}     />;
+  try {
+    chatHistory = await getChatHistory(chatId, appUser.id);
+  } catch {
+    redirect("/chat");
+  }
+
+  return <CareerCoachDashboard chatId={chatId} history={chatHistory as Message[]} />;
 }

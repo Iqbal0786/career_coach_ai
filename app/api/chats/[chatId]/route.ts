@@ -1,4 +1,5 @@
 import { pinChat, removeChat } from "@/lib/services/chat.service";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 
 type ChatRouteContext = {
   params: Promise<{
@@ -8,6 +9,7 @@ type ChatRouteContext = {
 
 export async function PATCH(req: Request, { params }: ChatRouteContext) {
   try {
+    const { appUser } = await getAuthenticatedUser();
     const { chatId } = await params;
     const body = await req.json();
 
@@ -18,7 +20,7 @@ export async function PATCH(req: Request, { params }: ChatRouteContext) {
       );
     }
 
-    const chat = await pinChat(chatId, body.isPinned);
+    const chat = await pinChat(chatId, body.isPinned, appUser.id);
     return Response.json({ success: true, chat });
   } catch (error) {
     if (error instanceof Error && error.message === "You can pin up to 3 chats.") {
@@ -38,8 +40,9 @@ export async function PATCH(req: Request, { params }: ChatRouteContext) {
 
 export async function DELETE(_req: Request, { params }: ChatRouteContext) {
   try {
+    const { appUser } = await getAuthenticatedUser();
     const { chatId } = await params;
-    await removeChat(chatId);
+    await removeChat(chatId, appUser.id);
     return Response.json({ success: true });
   } catch (error) {
     console.error("Failed to delete chat:", error);

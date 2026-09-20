@@ -19,6 +19,7 @@ type ProcessUserMessageInput = {
   chatId?: string;
   content: string;
   documentId?: string;
+  userId: string;
 };
 
 type SaveAssistantMessageInput = {
@@ -31,11 +32,12 @@ export async function processUserMessage({
   chatId,
   content,
   documentId,
+  userId,
 }: ProcessUserMessageInput) {
   if (chatId) {
     const chat = await findChatById(chatId);
 
-    if (!chat) {
+    if (!chat || chat.userId !== userId) {
       throw new Error("Chat not found");
     }
 
@@ -64,7 +66,7 @@ export async function processUserMessage({
   }
 
   return prisma.$transaction(async (tx) => {
-    const chat = await createChat({}, tx);
+    const chat = await createChat({ userId }, tx);
 
     const message = await createMessage(
       {
@@ -101,12 +103,15 @@ export async function saveAssistantMessage({
   });
 }
 
-export async function getChatHistory(chatId: string) {
-   return findMessagesByChatId(chatId);
+export async function getChatHistory(chatId: string, userId: string) {
+  const chat = await findChatById(chatId);
+  if (!chat || chat.userId !== userId) throw new Error("Chat not found");
+  const messages = await findMessagesByChatId(chatId);
+  return messages;
 }
 
-export async function getRecentChats(cursor?: string, limit = 20) {
-  const chats = await findRecentChats({ cursor, limit });
+export async function getRecentChats(userId: string, cursor?: string, limit = 20) {
+  const chats = await findRecentChats({ cursor, limit, userId });
   const hasMore = chats.length > limit;
   const items = hasMore ? chats.slice(0, limit) : chats;
 
@@ -121,16 +126,17 @@ export async function getRecentChats(cursor?: string, limit = 20) {
   };
 }
 
-export async function pinChat(chatId: string, isPinned: boolean) {
-  return prisma.$transaction((tx) => setChatPinned(chatId, isPinned, tx));
+export async function pinChat(chatId: string, isPinned: boolean, userId: string) {
+  return prisma.$transaction((tx) => setChatPinned(chatId, isPinned, userId, tx));
 }
 
-export async function removeChat(chatId: string) {
-  return deleteChat(chatId);
+export async function removeChat(chatId: string, userId: string) {
+  return deleteChat(chatId, userId);
 }
 
-export async function getChatById(chatId: string) {
-  return findChatById(chatId);
+export async function getChatById(chatId: string, userId: string) {
+  const chat = await findChatById(chatId);
+  return chat?.userId === userId ? chat : null;
 }
 
 export async function getMessagesAfterMemory(

@@ -8,12 +8,14 @@ import { careerCoachSystemPrompt } from "@/ai/prompts";
 import { processUserMessage } from "@/lib/services/chat.service";
 import { handleChatFinish } from "@/ai/handlers/chat-finish.handler";
 import { buildChatContext } from "@/ai/context/build-chat-context";
-import { searchChatDocuments } from "@/lib/services/retrieval.service";
+import { searchChatDocuments, searchDocument } from "@/lib/services/retrieval.service";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 /*  */
 export const runtime = "nodejs";/*  */
 
 export async function POST(req: Request) {/*  */
   try {
+    const { appUser } = await getAuthenticatedUser();
     const contentType = req.headers.get("content-type") ?? "";
     let body: {
       chatId?: string;
@@ -63,17 +65,24 @@ export async function POST(req: Request) {/*  */
       chatId,
       content: message,
       documentId: body.documentId,
+      userId: appUser.id,
     });
 
     // Retrieve relevant document chunks for RAG
-    const relevantChunks = await searchChatDocuments({
-      chatId: chat.id,
-      query: message,
-      limit: 5,
-    });
+    const relevantChunks = body.documentId
+      ? await searchDocument({
+          documentId: body.documentId,
+          query: message,
+          limit: 5,
+        })
+      : await searchChatDocuments({
+          chatId: chat.id,
+          query: message,
+          limit: 5,
+        });
 
     // Fetch messages with attachments
-    const { memory, messages } = await buildChatContext(chat.id);
+    const { memory, messages } = await buildChatContext(chat.id, appUser.id);
 
     // Build document context from retrieved chunks
     let documentContext = "";

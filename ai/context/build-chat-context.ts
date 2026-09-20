@@ -12,8 +12,9 @@ import type {
 
 export async function buildChatContext(
   chatId: string,
+  userId: string,
 ): Promise<ChatContext> {
-  const chat = await getChatById(chatId);
+  const chat = await getChatById(chatId, userId);
 
   if (!chat) {
     return {

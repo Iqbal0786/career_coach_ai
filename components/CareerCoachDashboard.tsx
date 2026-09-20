@@ -25,6 +25,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
   const transcriptRef = useRef<HTMLDivElement>(null);
   const nextMessageId = useRef(2);
   const initialPromptSent = useRef(false);
+  console.log("messages", messages);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({
@@ -72,7 +73,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
       }
 
       const result = await response.json();
-      setAttachment((currentAttachment) => currentAttachment ? { ...currentAttachment, documentId: result.documentId } : currentAttachment);
+      setAttachment((currentAttachment) => currentAttachment ? { ...currentAttachment, documentId: result.documentId, storagePath: result.storagePath, url: result.url } : currentAttachment);
       if (!activeChatId && result.chatId) setActiveChatId(result.chatId);
       setUploadStatus("ready");
     } catch (caughtError) {
@@ -103,7 +104,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
       id: nextMessageId.current,
       role: "user",
       content,
-      attachments: attachedFile?.documentId ? [{ document: { id: attachedFile.documentId, name: attachedFile.name, storagePath: "", mimeType: attachedFile.file.type } }] : undefined,
+      attachments: attachedFile?.documentId ? [{ document: { id: attachedFile.documentId, name: attachedFile.name, storagePath: attachedFile.storagePath ?? "", mimeType: attachedFile.file.type, url: attachedFile.url } }] : undefined,
     };
     nextMessageId.current += 1;
     const coachMessageId = nextMessageId.current;

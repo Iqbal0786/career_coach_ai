@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Ellipsis, House, LoaderCircle, PencilLine, Pin, Plus, Trash2 } from "lucide-react";
+import { Ellipsis, House, LoaderCircle, LogOut, PencilLine, Pin, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type ChatSummary = {
   id: string;
@@ -42,6 +43,12 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
   const cursorRef = useRef<string | null>(null);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
+
+  async function signOut() {
+    await createClient().auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -178,7 +185,7 @@ export function CareerCoachSidebar({ activeChatId }: CareerCoachSidebarProps) {
         </div>) : <p className="px-3 py-3 text-xs text-stone-400">No conversations yet.</p>}
         {hasMore ? <div className="px-3 py-3 text-[11px] text-stone-400">Scroll for older chats</div> : null}
       </nav>
-      <div className="mt-auto space-y-1 border-t-2 border-[#d8e1dc] pt-3"><Link href="/" className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-xs text-stone-600 hover:bg-[#e1ece5] hover:text-[#18332d]"><House size={15} strokeWidth={2} /><span>Home</span></Link><div className="rounded-lg px-3 py-2 text-[11px] leading-4 text-stone-400">Your conversations stay focused on your career goals.</div></div>
+      <div className="mt-auto space-y-1 border-t-2 border-[#d8e1dc] pt-3"><Link href="/" className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-xs text-stone-600 hover:bg-[#e1ece5] hover:text-[#18332d]"><House size={15} strokeWidth={2} /><span>Home</span></Link><button type="button" onClick={() => void signOut()} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-stone-600 hover:bg-[#e1ece5] hover:text-[#18332d]"><LogOut size={15} strokeWidth={2} /><span>Sign out</span></button><div className="rounded-lg px-3 py-2 text-[11px] leading-4 text-stone-400">Your conversations stay focused on your career goals.</div></div>
     </aside>
   );
 }

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "prisma generate",
     "dev": "next dev",
     "prebuild": "prisma generate",
     "build": "next build",
@@ -20,6 +21,7 @@
     "@ai-sdk/google": "^3.0.83",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "ai": "^6.0.208",
     "dotenv": "^17.4.2",

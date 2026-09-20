@@ -1,10 +1,12 @@
 import { getRecentChats } from "@/lib/services/chat.service";
+import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
 export async function GET(req: Request) {
   try {
+    const { appUser } = await getAuthenticatedUser();
     const url = new URL(req.url);
     const requestedLimit = Number(url.searchParams.get("limit"));
     const limit = Number.isFinite(requestedLimit)
@@ -12,7 +14,7 @@ export async function GET(req: Request) {
       : DEFAULT_LIMIT;
     const cursor = url.searchParams.get("cursor") || undefined;
 
-    return Response.json(await getRecentChats(cursor, limit));
+    return Response.json(await getRecentChats(appUser.id, cursor, limit));
   } catch (error) {
     console.error("Failed to load recent chats:", error);
 
