@@ -27,7 +27,8 @@ export async function searchDocument({
   });
 }
 
-export async function searchChatDocuments({
+export async function 
+searchChatDocuments({
   chatId,
   query,
   limit = 10,

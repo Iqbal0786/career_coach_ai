@@ -19,6 +19,7 @@ export function CareerCoachComposer({
   onOpenFilePicker,
   onRemoveAttachment,
   onRetryUpload,
+  onRetryMessage,
   onSend,
 }: ComposerProps) {
   return (
@@ -43,7 +44,10 @@ export function CareerCoachComposer({
           <button type="submit" disabled={!canSubmit} aria-label={isSending ? "Sending message" : "Send message"} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f5a4d] text-white transition hover:bg-[#17453b] disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400">{isSending ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowUp size={16} strokeWidth={2.5} />}</button>
         </div>
       </div>
-      <p className={`mt-2 min-h-4 text-center text-[11px] ${error ? "text-red-600" : "text-stone-400"}`} role={error ? "alert" : undefined}>{error || "Career Coach can make mistakes. Check important information."}</p>
+      <div className="mt-2 flex min-h-4 items-center justify-center gap-3 text-[11px]">
+        <p className={error ? "text-red-600" : "text-stone-400"} role={error ? "alert" : undefined}>{error || "Career Coach can make mistakes. Check important information."}</p>
+        {error ? <button type="button" onClick={onRetryMessage} disabled={isSending} className="font-semibold text-[#1f5a4d] underline underline-offset-2 disabled:opacity-50">Retry</button> : null}
+      </div>
     </form>
   );
 }

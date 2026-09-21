@@ -12,6 +12,28 @@ type CareerCoachDashboardProps = {
   initialPrompt?: string;
 };
 
+function getFriendlyChatError(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  let message = rawMessage;
+
+  try {
+    const parsed = JSON.parse(rawMessage) as { error?: string; message?: string };
+    message = parsed.error || parsed.message || message;
+  } catch {
+    // The response may be plain text instead of JSON.
+  }
+
+  if (/429|rate limit|too many requests|retry in/i.test(`${rawMessage} ${message}`)) {
+    return "The AI service is temporarily busy. Please try again in a moment.";
+  }
+
+  if (/quota|resource exhausted|capacity/i.test(`${rawMessage} ${message}`)) {
+    return "The AI service has temporarily reached its usage limit. Please try again later.";
+  }
+
+  return "The coach could not complete that response. Please try again.";
+}
+
 export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerCoachDashboardProps) {
   const [messages, setMessages] = useState<Message[]>(history ?? []);
   const [message, setMessage] = useState("");
@@ -25,6 +47,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
   const transcriptRef = useRef<HTMLDivElement>(null);
   const nextMessageId = useRef(2);
   const initialPromptSent = useRef(false);
+  const failedRequestRef = useRef<{ message: string; chatId?: string; documentId?: string } | null>(null);
   const routeId = chatId ?? "new-chat";
   const mountedRouteId = useRef(routeId);
 
@@ -125,12 +148,14 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
     if (attachment) void selectFile(attachment.file);
   }
 
-  const submitMessage = useCallback(async (nextMessage?: string) => {
+  const submitMessage = useCallback(async (nextMessage?: string, requestOverrides?: { chatId?: string; documentId?: string }) => {
     const requestedContent = (nextMessage ?? message).trim();
     const content = requestedContent || (attachment ? "Please review the attached file." : "");
     if (!content || isSending) return;
 
     const attachedFile = attachment;
+    const requestChatId = requestOverrides?.chatId ?? activeChatId;
+    const requestDocumentId = requestOverrides?.documentId ?? attachedFile?.documentId;
     const userMessage: Message = {
       id: nextMessageId.current,
       role: "user",
@@ -154,8 +179,8 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: content,
-          ...(activeChatId && { chatId: activeChatId }),
-          ...(attachedFile?.documentId && { documentId: attachedFile.documentId }),
+          ...(requestChatId && { chatId: requestChatId }),
+          ...(requestDocumentId && { documentId: requestDocumentId }),
         }),
       });
 
@@ -184,12 +209,25 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
         setMessages((currentMessages) => currentMessages.map((chatMessage) => chatMessage.id === coachMessageId ? { ...chatMessage, content: chatMessage.content + chunk } : chatMessage));
       }
 
+      failedRequestRef.current = null;
+
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to reach the coach right now.");
+      const friendlyError = getFriendlyChatError(caughtError);
+      failedRequestRef.current = { message: content, chatId: requestChatId, documentId: requestDocumentId };
+      setMessages((currentMessages) => currentMessages.map((chatMessage) => chatMessage.id === coachMessageId ? { ...chatMessage, content: friendlyError } : chatMessage));
+      setError(friendlyError);
     } finally {
       setIsSending(false);
     }
   }, [activeChatId, attachment, isSending, message]);
+
+  function retryMessage() {
+    const failedRequest = failedRequestRef.current;
+    if (!failedRequest || isSending) return;
+    setMessages((currentMessages) => currentMessages.slice(0, -2));
+    setError("");
+    void submitMessage(failedRequest.message, failedRequest);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -227,6 +265,7 @@ export function CareerCoachDashboard({ chatId, history, initialPrompt }: CareerC
             onOpenFilePicker={() => fileInputRef.current?.click()}
             onRemoveAttachment={() => { setAttachment(null); setUploadStatus("idle"); setError(""); }}
             onRetryUpload={retryUpload}
+            onRetryMessage={retryMessage}
             onSend={() => void submitMessage()}
           />
         </div>

@@ -44,5 +44,6 @@ export type ComposerProps = {
   onOpenFilePicker: () => void;
   onRemoveAttachment: () => void;
   onRetryUpload: () => void;
+  onRetryMessage: () => void;
   onSend: () => void;
 };

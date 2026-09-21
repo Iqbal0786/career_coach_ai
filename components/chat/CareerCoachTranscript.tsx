@@ -1,4 +1,4 @@
-import { ArrowUp, Download, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, ChevronUp, Copy, Download, LoaderCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { downloadDocument as downloadSupabaseDocument } from "@/lib/supabase/storage/browser";
 import type { ReactNode } from "react";
@@ -82,6 +82,56 @@ function DocumentDownloadButton({ document: attachmentDocument, isUser }: { docu
   );
 }
 
+function CopyMessageButton({ content, isUser }: { content: string; isUser: boolean }) {
+  const [isCopied, setIsCopied] = useState(false);
+  const copyLabel = isUser ? "Copy message" : "Copy response";
+  const copiedLabel = isUser ? "Message copied" : "Response copied";
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(content);
+      setIsCopied(true);
+      window.setTimeout(() => setIsCopied(false), 1600);
+    } catch {
+      setIsCopied(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void copyMessage()}
+      title={isCopied ? copiedLabel : copyLabel}
+      aria-label={isCopied ? copiedLabel : copyLabel}
+      className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition hover:bg-[#eaf4ee] hover:text-[#1f5a4d]"
+    >
+      {isCopied ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  );
+}
+
+function UserMessageContent({ content }: { content: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLong = content.length > 600 || content.split("\n").length > 8;
+  const visibleContent = isExpanded || !isLong ? content : `${content.slice(0, 600).trimEnd()}...`;
+
+  return (
+    <>
+      <p className="whitespace-pre-wrap">{visibleContent}</p>
+      {isLong ? (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1f5a4d] hover:text-[#17453b]"
+        >
+          {isExpanded ? "Show less" : "Show more"}
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 type CareerCoachTranscriptProps = {
   messages: Message[];
   isSending: boolean;
@@ -117,9 +167,10 @@ export function CareerCoachTranscript({ messages, isSending, transcriptRef, onSt
                       {isUser ? "You" : "Career Coach"}
                     </p>
                     <div className={isUser ? "rounded-2xl rounded-br-md bg-[#e3f1e8] px-4 py-3 text-[#18332d]" : "px-1 py-1"}>
-                      {isUser ? <p className="whitespace-pre-wrap">{chatMessage.content}</p> : chatMessage.content ? <MarkdownMessage content={chatMessage.content} /> : <p className="text-stone-400">Thinking<span className="animate-pulse">...</span></p>}
+                      {isUser ? <UserMessageContent content={chatMessage.content} /> : chatMessage.content ? <MarkdownMessage content={chatMessage.content} /> : <p className="text-stone-400">Thinking<span className="animate-pulse">...</span></p>}
                       {chatMessage.attachments?.map(({ document }) => <DocumentDownloadButton key={document.id} document={document} isUser={isUser} />)}
                     </div>
+                    {chatMessage.content ? <div className={`mt-1 flex ${isUser ? "justify-end" : "justify-start"}`}><CopyMessageButton content={chatMessage.content} isUser={isUser} /></div> : null}
                   </div>
                 </article>
               );

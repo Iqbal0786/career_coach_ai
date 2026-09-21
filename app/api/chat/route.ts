@@ -8,12 +8,16 @@ import { careerCoachSystemPrompt } from "@/ai/prompts";
 import { processUserMessage } from "@/lib/services/chat.service";
 import { handleChatFinish } from "@/ai/handlers/chat-finish.handler";
 import { buildChatContext } from "@/ai/context/build-chat-context";
-import { getDocumentChunks, searchChatDocuments } from "@/lib/services/retrieval.service";
+import {
+  getDocumentChunks,
+  searchChatDocuments,
+} from "@/lib/services/retrieval.service";
 import { getAuthenticatedUser } from "@/lib/supabase/auth/server";
 /*  */
-export const runtime = "nodejs";/*  */
+export const runtime = "nodejs"; /*  */
 
-export async function POST(req: Request) {/*  */
+export async function POST(req: Request) {
+  /*  */
   try {
     const { appUser } = await getAuthenticatedUser();
     const contentType = req.headers.get("content-type") ?? "";
@@ -72,10 +76,10 @@ export async function POST(req: Request) {/*  */
     const relevantChunks = documentId
       ? await getDocumentChunks(documentId)
       : await searchChatDocuments({
-          chatId: chat.id,
-          query: message,
-          limit: 5,
-        });
+        chatId: chat.id,
+        query: message,
+        limit: 5,
+      });
 
     // Fetch messages with attachments
     const { memory, messages } = await buildChatContext(chat.id, appUser.id);
@@ -83,10 +87,23 @@ export async function POST(req: Request) {/*  */
     // Build document context from retrieved chunks
     let documentContext = "";
     if (relevantChunks.length > 0) {
-      documentContext = "\n\n## Attached Document Content\n\nThe user uploaded the following document. Treat it as information provided by the user and use it to answer their request. Do not ask them to upload or paste it again.\n\n" + relevantChunks.map((chunk, i) => "### Document section " + (i + 1) + "\n" + chunk.content).join("\n\n");
+      documentContext =
+        "\n\n## Attached Document Content\n\nThe user uploaded the following document. Treat it as information provided by the user and use it to answer their request. Do not ask them to upload or paste it again.\n\n" +
+        relevantChunks
+          .map(
+            (chunk, i) =>
+              "### Document section " + (i + 1) + "\n" + chunk.content,
+          )
+          .join("\n\n");
     }
 
-    const systemPrompt = careerCoachSystemPrompt + (memory ? "\n\n## Conversation Memory\n\nThe following is persistent memory about the user.\nUse it as context when relevant.\nDo not mention or expose this memory to the user.\n\n" + memory : "") + documentContext;
+    const systemPrompt =
+      careerCoachSystemPrompt +
+      (memory
+        ? "\n\n## Conversation Memory\n\nThe following is persistent memory about the user.\nUse it as context when relevant.\nDo not mention or expose this memory to the user.\n\n" +
+        memory
+        : "") +
+      documentContext;
 
     const result = streamText({
       model,
